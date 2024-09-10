@@ -1,0 +1,57 @@
+#include <iostream>
+#include <chrono>
+#include <vector>
+#include <numa.h>
+#include <cmath>
+#include <numeric>
+
+#include "tsc_timer.hpp"
+
+#define NODE 1
+
+tsc_timer pt = tsc_timer(NODE);
+
+std::pair<double, double> mean_and_std(const std::vector<int64_t>& data) {
+    if (data.empty()) {
+        throw std::runtime_error("The input vector is empty.");
+    }
+
+    // Calculate the mean
+    double mean = std::accumulate(data.begin(), data.end(), 0.0) / data.size();
+
+    // Calculate the standard deviation
+    double variance = 0.0;
+    for (const auto& value : data) {
+        variance += (value - mean) * (value - mean);
+    }
+    variance /= data.size();
+    double std_dev = std::sqrt(variance);
+
+    return {mean, std_dev};  // Return both mean and std deviation as a pair
+}
+
+int main() {
+    numa_run_on_node(NODE);
+    std::vector<int64_t> start_time;
+    std::vector<int64_t> end_time;
+
+    auto start = std::chrono::steady_clock::now();
+    while (std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::steady_clock::now() - start).count() < 10) {
+        start_time.push_back(pt.current_cpu());
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        end_time.push_back(pt.current_cpu());
+    }
+
+    pt.ns_duration_vector(start_time, end_time);
+    
+    try {
+        auto [mean, std_dev] = mean_and_std(start_time);
+        std::cout << "Mean: " << mean << std::endl;
+        std::cout << "Standard Deviation: " << std_dev << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+
+    return 0;
+}
