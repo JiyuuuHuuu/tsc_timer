@@ -11,25 +11,6 @@
 
 tsc_timer pt = tsc_timer(NODE);
 
-std::pair<double, double> mean_and_std(const std::vector<int64_t>& data) {
-    if (data.empty()) {
-        throw std::runtime_error("The input vector is empty.");
-    }
-
-    // Calculate the mean
-    double mean = std::accumulate(data.begin(), data.end(), 0.0) / data.size();
-
-    // Calculate the standard deviation
-    double variance = 0.0;
-    for (const auto& value : data) {
-        variance += (value - mean) * (value - mean);
-    }
-    variance /= data.size();
-    double std_dev = std::sqrt(variance);
-
-    return {mean, std_dev};  // Return both mean and std deviation as a pair
-}
-
 int main() {
     numa_run_on_node(NODE);
     std::vector<int64_t> start_time;
